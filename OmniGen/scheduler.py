@@ -8,7 +8,7 @@ from transformers.cache_utils import Cache, DynamicCache, OffloadedCache
 
 
 class OmniGenCache(DynamicCache):
-    def __init__(self, 
+    def __init__(self,
                     num_tokens_for_img: int, offload_kv_cache: bool=False) -> None:
         if not torch.cuda.is_available():
             # print("No avaliable GPU, offload_kv_cache wiil be set to False, which will result in large memory usage and time cost when input multiple images!!!")
@@ -29,12 +29,12 @@ class OmniGenCache(DynamicCache):
                 self.key_cache[layer_idx] = self.key_cache[layer_idx].to(device, non_blocking=True)
                 self.value_cache[layer_idx] = self.value_cache[layer_idx].to(device, non_blocking=True)
 
-    
+
     def evict_previous_layer(self, layer_idx: int):
         "Moves the previous layer cache to the CPU"
         if len(self) > 2:
             # We do it on the default stream so it occurs after all earlier computations on these tensors are done
-            if layer_idx == 0: 
+            if layer_idx == 0:
                 prev_layer_idx = -1
             else:
                 prev_layer_idx = (layer_idx - 1) % len(self)
@@ -55,7 +55,7 @@ class OmniGenCache(DynamicCache):
                 torch.cuda.synchronize(self.prefetch_stream)
                 key_tensor = self.key_cache[layer_idx]
                 value_tensor = self.value_cache[layer_idx]
-                
+
                 # Prefetch the next layer
                 self.prefetch_layer((layer_idx + 1) % len(self))
             else:
@@ -64,11 +64,11 @@ class OmniGenCache(DynamicCache):
             return (key_tensor, value_tensor)
         else:
             raise KeyError(f"Cache only has {len(self)} layers, attempted to access layer with index {layer_idx}")
-        
-       
+
+
     def update(
         self,
-        key_states: torch.Tensor, 
+        key_states: torch.Tensor,
         value_states: torch.Tensor,
         layer_idx: int,
         cache_kwargs: Optional[Dict[str, Any]] = None,
@@ -98,7 +98,7 @@ class OmniGenCache(DynamicCache):
              # Update the number of seen tokens
             if layer_idx == 0:
                 self._seen_tokens += key_states.shape[-2]
-                
+
             self.key_cache.append(key_states)
             self.value_cache.append(value_states)
             self.original_device.append(key_states.device)
@@ -122,9 +122,9 @@ class OmniGenScheduler:
         t = torch.linspace(0, 1, num_steps+1)
         t = t / (t + time_shifting_factor - time_shifting_factor * t)
         self.sigma = t
-    
+
     def crop_kv_cache(self, past_key_values, num_tokens_for_img):
-        # return 
+        # return
         crop_past_key_values = ()
         for layer_idx in range(len(past_key_values)):
             key_states, value_states = past_key_values[layer_idx][:2]
@@ -149,10 +149,10 @@ class OmniGenScheduler:
         for i in range(len(cache.key_cache)):
             cache.key_cache[i] = cache.key_cache[i][..., :-(num_tokens_for_img+1), :]
             cache.value_cache[i] = cache.value_cache[i][..., :-(num_tokens_for_img+1), :]
-        
+
         return cache
 
-    def __call__(self, z, func, model_kwargs, use_kv_cache: bool=True, offload_kv_cache: bool=True):
+    def __call__(self, z, func, model_kwargs, use_kv_cache: bool=False, offload_kv_cache: bool=True):
         num_tokens_for_img = z.size(-1)*z.size(-2) // 4
         if isinstance(model_kwargs['input_ids'], list):
             cache = [OmniGenCache(num_tokens_for_img, offload_kv_cache) for _ in range(len(model_kwargs['input_ids']))] if use_kv_cache else None
@@ -176,8 +176,7 @@ class OmniGenScheduler:
                 model_kwargs['attention_mask'] = self.crop_attention_mask_for_cache(model_kwargs['attention_mask'], num_tokens_for_img)
 
         del cache
-        torch.cuda.empty_cache()  
+        torch.cuda.empty_cache()
         gc.collect()
         return z
 
-    

@@ -20,7 +20,7 @@ def generate_image(text, img1, img2, img3, height, width, guidance_scale, img_gu
     input_images = [img for img in input_images if img is not None]
     if len(input_images) == 0:
         input_images = None
-    
+
     if randomize_seed:
         seed = random.randint(0, 10000000)
 
@@ -32,8 +32,8 @@ def generate_image(text, img1, img2, img3, height, width, guidance_scale, img_gu
         guidance_scale=guidance_scale,
         img_guidance_scale=img_guidance_scale,
         num_inference_steps=inference_steps,
-        separate_cfg_infer=separate_cfg_infer, 
-        use_kv_cache=True,
+        separate_cfg_infer=separate_cfg_infer,
+        use_kv_cache=False,
         offload_kv_cache=True,
         offload_model=offload_model,
         use_input_image_size_as_output=use_input_image_size_as_output,
@@ -41,7 +41,7 @@ def generate_image(text, img1, img2, img3, height, width, guidance_scale, img_gu
         max_input_image_size=max_input_image_size,
     )
     img = output[0]
-    
+
     if save_images:
         # Save All Generated Images
         from datetime import datetime
@@ -52,7 +52,7 @@ def generate_image(text, img1, img2, img3, height, width, guidance_scale, img_gu
         output_path = os.path.join('outputs', f'{timestamp}.png')
         # Save the image
         img.save(output_path)
-    
+
     return img
 
 def get_example():
@@ -256,14 +256,14 @@ def get_example():
     ]
     return case
 
-def run_for_examples(text, img1, img2, img3, height, width, guidance_scale, img_guidance_scale, seed, max_input_image_size, randomize_seed, use_input_image_size_as_output, save_images):    
+def run_for_examples(text, img1, img2, img3, height, width, guidance_scale, img_guidance_scale, seed, max_input_image_size, randomize_seed, use_input_image_size_as_output, save_images):
     # 在函数内部设置默认值
     inference_steps = 50
     separate_cfg_infer = True
     offload_model = False
-    
+
     return generate_image(
-        text, img1, img2, img3, height, width, guidance_scale, img_guidance_scale, 
+        text, img1, img2, img3, height, width, guidance_scale, img_guidance_scale,
         inference_steps, seed, separate_cfg_infer, offload_model,
         use_input_image_size_as_output, max_input_image_size, randomize_seed, save_images
     )
@@ -280,7 +280,7 @@ Tips:
 - If inference time is too long when inputting multiple images, please try to reduce the `max_input_image_size`. For more details please refer to [./docs/inference.md#requiremented-resources](https://github.com/VectorSpaceLab/OmniGen/blob/main/docs/inference.md#requiremented-resources).
 - Oversaturated: If the image appears oversaturated, please reduce the `guidance_scale`.
 - Not matching the prompt: If the image does not match the prompt, please try to increase the `guidance_scale`.
-- Low-quality: A more detailed prompt will lead to better results. 
+- Low-quality: A more detailed prompt will lead to better results.
 - Animated Style: If you want the generated image to appear less animated, and more realistic, you can try adding `photo` to the prompt.
 - Editing generated images: If you generate an image with OmniGen, and then want to edit it, you cannot use the same seed to edit this image. For example, use seed=0 to generate the image, and then use seed=1 to edit this image.
 - Image editing: In your prompt, we recommend placing the image before the editing instructions. For example, use `<img><|image_1|></img> remove suit`, rather than `remove suit <img><|image_1|></img>`.
@@ -291,8 +291,8 @@ HF Spaces often encounter errors due to quota limitations, so recommend to run i
 
 article = """
 ---
-**Citation** 
-<br> 
+**Citation**
+<br>
 If you find this repository useful, please consider giving a star ⭐ and a citation
 ```
 @article{xiao2024omnigen,
@@ -308,7 +308,7 @@ If you have any questions, please feel free to open an issue or directly reach u
 """
 
 
-# Gradio 
+# Gradio
 with gr.Blocks() as demo:
     gr.Markdown("# OmniGen: Unified Image Generation [paper](https://arxiv.org/abs/2409.11340) [code](https://github.com/VectorSpaceLab/OmniGen)")
     gr.Markdown(description)
@@ -366,7 +366,7 @@ with gr.Blocks() as demo:
 
             # generate
             generate_button = gr.Button("Generate Image")
-            
+
 
         with gr.Column():
             with gr.Column():

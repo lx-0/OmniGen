@@ -22,7 +22,7 @@ from safetensors.torch import load_file
 from OmniGen import OmniGen, OmniGenProcessor, OmniGenScheduler
 
 
-logger = logging.get_logger(__name__) 
+logger = logging.get_logger(__name__)
 
 EXAMPLE_DOC_STRING = """
     Examples:
@@ -91,13 +91,13 @@ class OmniGenPipeline:
             vae = AutoencoderKL.from_pretrained("stabilityai/sdxl-vae").to(device)
 
         return cls(vae, model, processor)
-    
+
     def merge_lora(self, lora_path: str):
         model = PeftModel.from_pretrained(self.model, lora_path)
         model.merge_and_unload()
 
         self.model = model
-    
+
     def to(self, device: Union[str, torch.device]):
         if isinstance(device, str):
             device = torch.device(device)
@@ -113,7 +113,7 @@ class OmniGenPipeline:
             x = self.vae.encode(x).latent_dist.sample().mul_(self.vae.config.scaling_factor)
         x = x.to(dtype)
         return x
-    
+
     def move_to_device(self, data):
         if isinstance(data, list):
             return [x.to(self.device) for x in data]
@@ -125,7 +125,7 @@ class OmniGenPipeline:
         self.vae.to("cpu")
         torch.cuda.empty_cache()  # Clear VRAM
         gc.collect()  # Run garbage collection to free system RAM
-    
+
     def disable_model_cpu_offload(self):
         self.model_cpu_offload = False
         self.model.to(self.device)
@@ -146,7 +146,7 @@ class OmniGenPipeline:
         max_input_image_size: int = 1024,
         separate_cfg_infer: bool = True,
         offload_model: bool = False,
-        use_kv_cache: bool = True,
+        use_kv_cache: bool = False,
         offload_kv_cache: bool = True,
         use_input_image_size_as_output: bool = False,
         dtype: torch.dtype = torch.bfloat16,
@@ -158,7 +158,7 @@ class OmniGenPipeline:
 
         Args:
             prompt (`str` or `List[str]`):
-                The prompt or prompts to guide the image generation. 
+                The prompt or prompts to guide the image generation.
             input_images (`List[str]` or `List[List[str]]`, *optional*):
                 The list of input images. We will replace the "<|image_i|>" in prompt with the 1-th image in list.
             height (`int`, *optional*, defaults to 1024):
@@ -174,9 +174,9 @@ class OmniGenPipeline:
                 1`. Higher guidance scale encourages to generate images that are closely linked to the text `prompt`,
                 usually at the expense of lower image quality.
             use_img_guidance (`bool`, *optional*, defaults to True):
-                Defined as equation 3 in [Instrucpix2pix](https://arxiv.org/pdf/2211.09800). 
+                Defined as equation 3 in [Instrucpix2pix](https://arxiv.org/pdf/2211.09800).
             img_guidance_scale (`float`, *optional*, defaults to 1.6):
-                Defined as equation 3 in [Instrucpix2pix](https://arxiv.org/pdf/2211.09800). 
+                Defined as equation 3 in [Instrucpix2pix](https://arxiv.org/pdf/2211.09800).
             max_input_image_size (`int`, *optional*, defaults to 1024): the maximum size of input image, which will be used to crop the input image to the maximum size
             separate_cfg_infer (`bool`, *optional*, defaults to False):
                 Perform inference on images with different guidance separately; this can save memory when generating images of large size at the expense of slower inference.
@@ -185,7 +185,7 @@ class OmniGenPipeline:
             offload_model (`bool`, *optional*, defaults to False): offload the model to cpu, which can save memory but slow down the generation
             use_input_image_size_as_output (bool, defaults to False): whether to use the input image size as the output image size, which can be used for single-image input, e.g., image editing task
             seed (`int`, *optional*):
-                A random seed for generating output. 
+                A random seed for generating output.
             dtype (`torch.dtype`, *optional*, defaults to `torch.bfloat16`):
                 data type for the model
             output_type (`str`, *optional*, defaults to "pil"):
@@ -205,7 +205,7 @@ class OmniGenPipeline:
         if isinstance(prompt, str):
             prompt = [prompt]
             input_images = [input_images] if input_images is not None else None
-        
+
 
         # set model and processor
         if max_input_image_size != self.processor.max_image_size:
@@ -252,18 +252,18 @@ class OmniGenPipeline:
             torch.cuda.empty_cache()  # Clear VRAM
             gc.collect()  # Run garbage collection to free system RAM
 
-        model_kwargs = dict(input_ids=self.move_to_device(input_data['input_ids']), 
-            input_img_latents=input_img_latents, 
-            input_image_sizes=input_data['input_image_sizes'], 
-            attention_mask=self.move_to_device(input_data["attention_mask"]), 
-            position_ids=self.move_to_device(input_data["position_ids"]), 
+        model_kwargs = dict(input_ids=self.move_to_device(input_data['input_ids']),
+            input_img_latents=input_img_latents,
+            input_image_sizes=input_data['input_image_sizes'],
+            attention_mask=self.move_to_device(input_data["attention_mask"]),
+            position_ids=self.move_to_device(input_data["position_ids"]),
             cfg_scale=guidance_scale,
             img_cfg_scale=img_guidance_scale,
             use_img_cfg=use_img_guidance,
             use_kv_cache=use_kv_cache,
             offload_model=offload_model,
             )
-        
+
         if separate_cfg_infer:
             func = self.model.forward_with_separate_cfg
         else:
@@ -286,22 +286,22 @@ class OmniGenPipeline:
 
         if self.model_cpu_offload:
             self.model.to('cpu')
-            torch.cuda.empty_cache()  
-            gc.collect()  
+            torch.cuda.empty_cache()
+            gc.collect()
 
         self.vae.to(self.device)
         samples = samples.to(torch.float32)
         if self.vae.config.shift_factor is not None:
             samples = samples / self.vae.config.scaling_factor + self.vae.config.shift_factor
         else:
-            samples = samples / self.vae.config.scaling_factor   
+            samples = samples / self.vae.config.scaling_factor
         samples = self.vae.decode(samples).sample
 
         if self.model_cpu_offload:
             self.vae.to('cpu')
-            torch.cuda.empty_cache()  
-            gc.collect()  
-        
+            torch.cuda.empty_cache()
+            gc.collect()
+
         samples = (samples * 0.5 + 0.5).clamp(0, 1)
 
         if output_type == "pt":

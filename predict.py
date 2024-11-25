@@ -113,7 +113,7 @@ class Predictor(BasePredictor):
             img_guidance_scale=img_guidance_scale,
             num_inference_steps=inference_steps,
             separate_cfg_infer=separate_cfg_infer,
-            use_kv_cache=True,
+            use_kv_cache=False,
             offload_kv_cache=True,
             offload_model=offload_model,
             use_input_image_size_as_output=use_input_image_size_as_output,
